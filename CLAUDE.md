@@ -1,183 +1,205 @@
-# CLAUDE.md — EHR Reconciliation Project
+# CLAUDE.md — Project Scope & Context
 
-This file documents the codebase structure, development workflows, and conventions for AI assistants working in this repository.
+This file exists to give Claude Code (and Cursor) full context about this project so every suggestion stays within scope. Read this before generating any code.
 
-## Project Overview
+## What This Project Is
 
-`ehr-reconciliation` is an Electronic Health Record (EHR) reconciliation tool. The project is in early scaffolding phase — the skeleton is in place but core reconciliation and validation logic has not yet been implemented.
+A mini clinical data reconciliation engine — a full-stack web application that uses AI to resolve conflicting patient medication records across multiple healthcare systems and validate the quality of patient data.
 
-The architecture is a **TypeScript monorepo** with two independent packages:
-- `client/` — React 19 + Vite frontend (port 5173)
-- `server/` — Express 5 + Node.js backend (port 3001)
+This is a take-home assessment for an EHR Integration Intern role at Onye.
 
-The server expects an Anthropic API key (`ANTHROPIC_API_KEY`), indicating AI-assisted reconciliation logic is planned.
+## Tech Stack
 
----
+| Layer | Choice | Why |
+|---|---|---|
+| Backend | Node.js + Express | Familiar, fast to scaffold, good TypeScript support |
+| Language | TypeScript | Type safety on medical data is important |
+| Frontend | React + Vite | Component model fits the dashboard UI well |
+| AI | Anthropic Claude API | Listed in assessment, best JSON reasoning output |
+| Validation | Zod | Runtime schema validation for API inputs |
+| Testing | Vitest | Fast, native TypeScript support |
+| Storage | In-memory (Map) | Assessment explicitly allows this, no DB needed |
 
-## Repository Structure
+## Project Structure
 
 ```
 ehr-reconciliation/
-├── .env.example          # Required env var template (copy to .env)
-├── .gitignore
-├── CLAUDE.md             # This file
-├── client/               # React frontend
-│   ├── public/
+├── server/
 │   ├── src/
-│   │   ├── assets/
-│   │   ├── App.css
-│   │   ├── App.tsx       # Root component (currently Vite scaffold)
-│   │   ├── index.css
-│   │   └── main.tsx      # Entry point — mounts <App /> to #root
-│   ├── eslint.config.js  # Flat ESLint config
-│   ├── index.html
-│   ├── package.json
-│   ├── tsconfig.json     # Composite config (references app + node)
-│   ├── tsconfig.app.json # App source TS config
-│   ├── tsconfig.node.json # Vite config TS config
-│   └── vite.config.ts
-└── server/               # Express backend
-    ├── src/
-    │   └── index.ts      # Entry point — Express app setup
-    ├── package.json
-    └── tsconfig.json
+│   │   ├── routes/         # Express route handlers
+│   │   ├── services/       # Claude API calls live here
+│   │   ├── middleware/     # Auth key checking
+│   │   ├── utils/          # Cache, helpers
+│   │   └── index.ts        # App entry point
+│   └── tests/              # Vitest unit tests
+└── client/
+    └── src/
+        ├── components/     # Reusable UI pieces
+        ├── pages/          # MedicationReconciler, DataQuality
+        └── api/            # Axios calls to our backend
 ```
 
----
+## API Endpoints (Exactly 2 — Do Not Add More)
 
-## Environment Setup
+The assessment restricts us to exactly these two endpoints.
 
-Copy `.env.example` to `.env` in the **project root** and fill in values:
+### 1. POST /api/reconcile/medication
 
-```
-ANTHROPIC_API_KEY=   # Required for AI-assisted reconciliation
-API_SECRET_KEY=      # Custom API auth secret
-PORT=3001            # Server port (default: 3001)
-```
+Resolves conflicting medication records from multiple healthcare sources.
 
-The server loads `.env` via `dotenv.config()` at startup. The client (Vite) reads env vars prefixed with `VITE_` — add those to `client/.env` if needed.
-
----
-
-## Development Workflows
-
-### Starting development servers
-
-Both servers must run concurrently in separate terminals:
-
-```bash
-# Terminal 1 — Backend
-cd server
-npm install
-npm run dev        # nodemon + ts-node, auto-reloads on change
-
-# Terminal 2 — Frontend
-cd client
-npm install
-npm run dev        # Vite dev server with HMR
-```
-
-- Frontend: http://localhost:5173
-- Backend: http://localhost:3001
-- Health check: http://localhost:3001/health → `{ "status": "ok" }`
-
-### Running tests
-
-```bash
-cd server
-npm run test       # Vitest (watch mode by default)
+**Request body:**
+```json
+{
+  "patient_context": {
+    "age": 67,
+    "conditions": ["Type 2 Diabetes", "Hypertension"],
+    "recent_labs": { "eGFR": 45 }
+  },
+  "sources": [
+    {
+      "system": "Hospital EHR",
+      "medication": "Metformin 1000mg twice daily",
+      "last_updated": "2024-10-15",
+      "source_reliability": "high"
+    },
+    {
+      "system": "Primary Care",
+      "medication": "Metformin 500mg twice daily",
+      "last_updated": "2025-01-20",
+      "source_reliability": "high"
+    },
+    {
+      "system": "Pharmacy",
+      "medication": "Metformin 1000mg daily",
+      "last_filled": "2025-01-25",
+      "source_reliability": "medium"
+    }
+  ]
+}
 ```
 
-No test files exist yet. Add tests under `server/src/` with `.test.ts` or `.spec.ts` suffixes.
-
-### Linting
-
-```bash
-cd client
-npm run lint       # ESLint on all *.ts and *.tsx files
+**Response body:**
+```json
+{
+  "reconciled_medication": "Metformin 500mg twice daily",
+  "confidence_score": 0.88,
+  "reasoning": "Primary care record is most recent...",
+  "recommended_actions": ["Update Hospital EHR to 500mg twice daily"],
+  "clinical_safety_check": "PASSED"
+}
 ```
 
-No lint script exists on the server yet; TypeScript strict mode (`tsc --noEmit`) serves as a type check.
+### 2. POST /api/validate/data-quality
 
-### Building for production
+Scores a patient record across four data quality dimensions.
 
-```bash
-# Server
-cd server
-npm run build      # tsc → outputs to dist/
-
-# Client
-cd client
-npm run build      # tsc -b && vite build → outputs to dist/
-npm run preview    # Preview the production build locally
+**Request body:**
+```json
+{
+  "demographics": { "name": "John Doe", "dob": "1955-03-15", "gender": "M" },
+  "medications": ["Metformin 500mg", "Lisinopril 10mg"],
+  "allergies": [],
+  "conditions": ["Type 2 Diabetes"],
+  "vital_signs": { "blood_pressure": "340/180", "heart_rate": 72 },
+  "last_updated": "2024-06-15"
+}
 ```
 
----
+**Response body:**
+```json
+{
+  "overall_score": 62,
+  "breakdown": {
+    "completeness": 60,
+    "accuracy": 50,
+    "timeliness": 70,
+    "clinical_plausibility": 40
+  },
+  "issues_detected": [
+    {
+      "field": "allergies",
+      "issue": "No allergies documented - likely incomplete",
+      "severity": "medium"
+    },
+    {
+      "field": "vital_signs.blood_pressure",
+      "issue": "Blood pressure 340/180 is physiologically implausible",
+      "severity": "high"
+    }
+  ]
+}
+```
 
-## Architecture & Key Conventions
+## Authentication
 
-### TypeScript
+All API endpoints are protected by a simple API key check.
 
-- **Strict mode is enabled** on both client and server. No `any` unless unavoidable and commented.
-- Server targets `ES2020` / `commonjs` modules.
-- Client targets `ES2022` / `ESNext` modules (bundler resolution via Vite).
-- Never disable `strict`, `noUnusedLocals`, or `noUnusedParameters` without discussion.
+- Header: `x-api-key`
+- Value must match `API_SECRET_KEY` environment variable
+- Return 401 if missing or wrong
+- This is NOT user auth — it's just to protect the API from open access
 
-### Server (Express 5)
+## AI Integration Rules
 
-- Entry: `server/src/index.ts`
-- CORS is locked to `http://localhost:5173`. Update this list when deploying.
-- All routes should be grouped under `/api/` prefixes.
-- Planned route namespaces (currently commented out):
-  - `POST /api/reconcile` — reconciliation logic
-  - `POST /api/validate` — validation logic
-- Use **Zod** (`zod` is already installed) for all request body validation at route boundaries.
-- Export `app` as default from `index.ts` to support testing without starting the server.
+- All Claude API calls live in `server/src/services/claudeService.ts`
+- Every call must be wrapped in try/catch with graceful fallback error messages
+- Responses must be prompted to return only valid JSON — no markdown, no preamble
+- Cache responses in an in-memory Map keyed by a hash of the input to avoid redundant API calls on identical requests
+- Model to use: `claude-sonnet-4-20250514`
+- Always include patient context in prompts — it matters for clinical reasoning
 
-### Client (React 19 + Vite)
+## Frontend Requirements
 
-- Entry: `client/src/main.tsx` → `App.tsx`
-- `App.tsx` is currently the Vite scaffold (counter demo). Replace with real application UI.
-- React 19 strict mode is enabled in `main.tsx` — double-invocation of effects in development is intentional.
-- No state management library is installed; use React context for shared state until complexity warrants something more.
-- No component library is installed; build components from scratch or add one explicitly.
+Two pages only:
 
-### Validation
+1. **Medication Reconciler** — form to input conflicting records, displays reconciliation result with confidence score, reasoning, and approve/reject buttons
+2. **Data Quality Validator** — form to input a patient record, displays scored breakdown with color indicators (red < 50, yellow 50–75, green > 75)
 
-- **Zod** is installed on the server for runtime schema validation.
-- Define Zod schemas close to where they are used (in the route file or a sibling `*.schema.ts` file).
-- Infer TypeScript types from Zod schemas (`z.infer<typeof Schema>`) rather than duplicating types.
+Keep the UI simple and functional. This is a clinician-facing tool — clarity wins over visual complexity.
 
-### Anthropic / AI Integration
+## Required Unit Tests (Minimum 5)
 
-- The `ANTHROPIC_API_KEY` env var is present in `.env.example`, indicating AI-powered features are planned.
-- When adding Anthropic SDK usage, install `@anthropic-ai/sdk` in `server/`.
-- Keep all AI calls server-side; never expose the API key to the client.
+Tests live in `server/tests/`. Cover:
 
----
+1. Input validation rejects malformed medication reconciliation requests
+2. Input validation rejects malformed data quality requests
+3. Auth middleware blocks requests with missing or wrong API key
+4. Cache returns stored result on duplicate input (no second Claude call)
+5. Data quality scoring correctly flags implausible vital signs
 
-## What Has Not Been Implemented Yet
+## Environment Variables
 
-The following are scaffolded but empty:
+```
+ANTHROPIC_API_KEY=      # Your Claude API key
+API_SECRET_KEY=         # Secret for the x-api-key header auth
+PORT=3001               # Server port
+```
 
-| Area | Status |
-|---|---|
-| `/api/reconcile` route | Commented placeholder only |
-| `/api/validate` route | Commented placeholder only |
-| Anthropic SDK integration | Not installed |
-| Database / ORM | Not configured |
-| Authentication middleware | Not implemented |
-| Client UI | Default Vite scaffold |
-| Tests | No test files exist |
-| CI/CD | No GitHub Actions configured |
+## Grading Weights (Know What Matters Most)
 
-When implementing these, follow the conventions above and update this file.
+| Criterion | Weight | Focus |
+|---|---|---|
+| Code Quality | 30% | Clean architecture, error handling, readability |
+| AI Integration | 25% | Prompt design, smart Claude usage |
+| Problem Solving | 25% | Reconciliation logic, edge case handling |
+| Product Thinking | 20% | UI clarity, documentation, README quality |
 
----
+## Bonus Features (Only If Core Is Complete)
 
-## Git Conventions
+In priority order:
 
-- Branch format: `claude/<task-id>` for AI-assisted work.
-- Commit message format: `<type>: <short description>` (e.g., `feat: add reconcile route`, `fix: cors origin`, `chore: update deps`).
-- Never commit `.env` — it is in `.gitignore`.
-- `node_modules/` and `dist/` are gitignored at the root.
+1. **Docker** — Dockerfile + docker-compose.yml for both server and client
+2. **Confidence score calibration** — weight source recency + reliability before Claude call
+3. **Duplicate record detection** — detect when two sources describe the same record
+
+Do NOT pursue these until all required features are working and tested.
+
+## Hard Constraints — Do Not Violate
+
+- Do not add a third API endpoint
+- Do not add a database (in-memory only)
+- Do not add user authentication (API key check is sufficient)
+- Do not add FHIR parsing or HL7 handling (out of scope)
+- Do not use OpenAI — use Anthropic Claude API only
+- Do not skip input validation — Zod schemas are required on both endpoints
+- Do not hardcode the API key anywhere — always use environment variables
