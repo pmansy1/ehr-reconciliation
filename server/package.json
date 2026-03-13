@@ -1,12 +1,13 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-  "dev": "nodemon --exec ts-node src/index.ts",
-  "build": "tsc",
-  "test": "vitest"
- },
+    "dev": "nodemon --watch src --ext ts,json --exec \"ts-node\" src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "vitest"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
