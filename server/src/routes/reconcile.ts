@@ -1,9 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { ReconcileRequestSchema } from '../schemas';
+import { reconcileMedicationWithClaude } from '../services/claudeService';
 
 const router = Router();
 
-router.post('/medication', (req: Request, res: Response): void => {
+router.post('/medication', async (req: Request, res: Response): Promise<void> => {
   const result = ReconcileRequestSchema.safeParse(req.body);
 
   if (!result.success) {
@@ -11,14 +12,17 @@ router.post('/medication', (req: Request, res: Response): void => {
     return;
   }
 
-  // Hardcoded mock response matching assessment spec
-  res.json({
-    reconciled_medication: 'Metformin 500mg twice daily',
-    confidence_score: 0.88,
-    reasoning: 'Primary care record is most recent and clinically appropriate given patient context. Pharmacy fill pattern suggests adherence to 500mg twice daily regimen.',
-    recommended_actions: ['Update Hospital EHR to 500mg twice daily'],
-    clinical_safety_check: 'PASSED',
-  });
+  try {
+    const aiResponse = await reconcileMedicationWithClaude(result.data);
+    res.json(aiResponse);
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : 'Unknown error during medication reconciliation';
+    res.status(500).json({
+      error: 'Failed to reconcile medication records',
+      details: message,
+    });
+  }
 });
 
 export default router;

@@ -1,9 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { DataQualityRequestSchema } from '../schemas';
+import { validateDataQualityWithClaude } from '../services/claudeService';
 
 const router = Router();
 
-router.post('/data-quality', (req: Request, res: Response): void => {
+router.post('/data-quality', async (req: Request, res: Response): Promise<void> => {
   const result = DataQualityRequestSchema.safeParse(req.body);
 
   if (!result.success) {
@@ -11,28 +12,17 @@ router.post('/data-quality', (req: Request, res: Response): void => {
     return;
   }
 
-  // Hardcoded mock response matching assessment spec
-  res.json({
-    overall_score: 62,
-    breakdown: {
-      completeness: 60,
-      accuracy: 50,
-      timeliness: 70,
-      clinical_plausibility: 40,
-    },
-    issues_detected: [
-      {
-        field: 'allergies',
-        issue: 'No allergies documented - likely incomplete',
-        severity: 'medium',
-      },
-      {
-        field: 'vital_signs.blood_pressure',
-        issue: 'Blood pressure 340/180 is physiologically implausible',
-        severity: 'high',
-      },
-    ],
-  });
+  try {
+    const aiResponse = await validateDataQualityWithClaude(result.data);
+    res.json(aiResponse);
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : 'Unknown error during data quality validation';
+    res.status(500).json({
+      error: 'Failed to validate data quality',
+      details: message,
+    });
+  }
 });
 
 export default router;
