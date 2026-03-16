@@ -169,6 +169,21 @@ shapes across the whole server.
 
 ---
 
+## How I used Claude Code
+
+**Scaffolding and wiring verification.** I used Claude Code to spin up both the server
+and client, run live curl requests against the API, and confirm every layer was wired
+correctly — auth rejection, Zod validation errors, and full Claude responses — before
+writing a single test. This caught a missing `vite-env.d.ts` that was causing the
+frontend TypeScript build to fail silently.
+
+**Prompt iteration.** I used Claude Code to draft and refine the clinical prompts in
+`claudeService.ts`. Rather than guessing whether Claude would reliably return raw JSON
+with the right field names, I iterated on the prompt wording with Claude Code until the
+response shape was consistent and parseable without any post-processing cleanup.
+
+---
+
 ## Time spent
 
 | Task | Time |
