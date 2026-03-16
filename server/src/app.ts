@@ -1,12 +1,8 @@
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import { authMiddleware } from './middleware/auth';
 import reconcileRouter from './routes/reconcile';
 import validateRouter from './routes/validate';
-
-// Load .env if present (no-op in production — Vercel injects env vars directly)
-dotenv.config();
 
 const app = express();
 

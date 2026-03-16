@@ -1,10 +1,5 @@
 import crypto from 'crypto';
-import dotenv from 'dotenv';
-import path from 'path';
 import { ReconcileRequest, DataQualityRequest } from '../schemas';
-
-// Ensure the root .env is loaded so we can read ANTHROPIC_API_KEY
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 type ReconcileResponse = {
   reconciled_medication: string;
@@ -67,6 +62,9 @@ async function callClaude(userPrompt: string): Promise<any> {
   });
 
   if (!response.ok) {
+    if (response.status === 429) {
+      throw new Error('Claude API rate limit reached — please try again shortly');
+    }
     const errorText = await response.text();
     throw new Error(`Anthropic HTTP ${response.status}: ${errorText}`);
   }

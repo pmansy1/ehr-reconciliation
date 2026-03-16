@@ -133,6 +133,30 @@ workflow.
 
 ---
 
+## Prompt engineering approach
+
+**Patient context is embedded inline with the source records, not sent separately.**
+Medication reconciliation decisions are context-dependent — the right dose of Metformin
+for a 67-year-old with eGFR 45 is different from the right dose for a healthy 40-year-old.
+By placing age, conditions, and lab values in the same prompt block as the conflicting
+sources, Claude reasons over them together rather than treating them as independent inputs.
+This produces clinically grounded reconciliation rather than a simple recency or
+reliability vote.
+
+**Every prompt instructs Claude to return raw JSON with no markdown preamble.**
+LLMs naturally want to wrap responses in prose or code fences. A stray ` ```json ` block
+breaks `JSON.parse` silently. The prompts explicitly state "Return ONLY a single JSON
+object with this exact shape (no markdown, no extra text)" and include the target schema
+inline so the field names, types, and allowed enum values are unambiguous. This makes
+the response parseable deterministically without regex cleanup or post-processing.
+
+**Temperature is set to 0.2.**
+Clinical decisions should be consistent and reproducible for the same inputs. A low
+temperature reduces variance in the output while still allowing Claude to reason through
+novel combinations of conditions and sources.
+
+---
+
 ## Design decisions
 
 **In-memory cache (`Map` keyed by SHA-256 of the request body)**
