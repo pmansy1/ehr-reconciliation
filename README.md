@@ -5,6 +5,8 @@ medication records across multiple healthcare systems and score the quality of p
 
 Built as a take-home assessment for the EHR Integration Intern role at Onye.
 
+**Live demo:** https://ehr-reconciliation.vercel.app
+
 ---
 
 ## What it does
