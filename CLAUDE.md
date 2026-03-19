@@ -208,28 +208,6 @@ PORT=3001               # Server port
 
 ---
 
-## Grading Weights (Know What Matters Most)
-
-| Criterion        | Weight | Focus                                           |
-| ---------------- | ------ | ----------------------------------------------- |
-| Code Quality     | 30%    | Clean architecture, error handling, readability |
-| AI Integration   | 25%    | Prompt design, smart Claude usage               |
-| Problem Solving  | 25%    | Reconciliation logic, edge case handling        |
-| Product Thinking | 20%    | UI clarity, documentation, README quality       |
-
----
-
-## Bonus Features (Only If Core Is Complete)
-
-In priority order:
-
-1. **Docker** — `Dockerfile` + `docker-compose.yml` for both server and client
-2. **Confidence score calibration** — weight source recency + reliability before Claude call
-3. **Duplicate record detection** — detect when two sources describe the same record
-
-Do NOT pursue these until all required features are working and tested.
-
----
 
 ## Hard Constraints — Do Not Violate
 
